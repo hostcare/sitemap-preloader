@@ -19,9 +19,13 @@ import {
   RotateCcw,
   Filter,
   Shield,
-  Zap
+  Zap,
+  Key,
+  AlertTriangle
 } from 'lucide-react';
 import { SitemapParser, type SitemapUrl, type CrawlResult } from '@/utils/SitemapParser';
+import { FirecrawlService } from '@/utils/FirecrawlService';
+import { FirecrawlApiKeyDialog } from '@/components/FirecrawlApiKeyDialog';
 import heroImage from '@/assets/hero-warming.jpg';
 
 interface CrawlStats {
@@ -45,6 +49,10 @@ export const CacheWarmerDashboard = () => {
   const [authPassword, setAuthPassword] = useState('');
   const [maxPages, setMaxPages] = useState(100);
 
+  // Firecrawl state
+  const [isFirecrawlConfigured, setIsFirecrawlConfigured] = useState(false);
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
+
   // Crawling state
   const [urls, setUrls] = useState<SitemapUrl[]>([]);
   const [crawlResults, setCrawlResults] = useState<CrawlResult[]>([]);
@@ -58,6 +66,10 @@ export const CacheWarmerDashboard = () => {
     errors: 0,
     avgResponseTime: 0
   });
+
+  useEffect(() => {
+    setIsFirecrawlConfigured(FirecrawlService.isConfigured());
+  }, []);
 
   const updateStats = (results: CrawlResult[]) => {
     const successful = results.filter(r => r.status >= 200 && r.status < 400).length;
@@ -76,6 +88,19 @@ export const CacheWarmerDashboard = () => {
   };
 
   const handleLoadSitemap = async () => {
+    // Check if we need Firecrawl for external URLs
+    const isExternalUrl = !sitemapUrl.startsWith(window.location.origin);
+    
+    if (isExternalUrl && !isFirecrawlConfigured) {
+      toast({
+        title: "Configurazione Richiesta",
+        description: "Per accedere a sitemap esterne è necessario configurare Firecrawl",
+        variant: "destructive",
+      });
+      setShowApiKeyDialog(true);
+      return;
+    }
+
     try {
       toast({
         title: "Caricamento Sitemap",
@@ -86,7 +111,7 @@ export const CacheWarmerDashboard = () => {
         ? { username: authUsername, password: authPassword }
         : undefined;
 
-      const parsedUrls = await SitemapParser.parseSitemap(sitemapUrl, auth);
+      const parsedUrls = await SitemapParser.parseSitemap(sitemapUrl, auth, isExternalUrl);
       
       // Apply filters
       const filteredUrls = filters.length > 0 
@@ -218,6 +243,14 @@ export const CacheWarmerDashboard = () => {
 
   const progressPercentage = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
 
+  const handleFirecrawlConfigured = () => {
+    setIsFirecrawlConfigured(true);
+    toast({
+      title: "Firecrawl Configurato",
+      description: "Ora puoi caricare sitemap esterne",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-hero">
       {/* Hero Section */}
@@ -285,6 +318,27 @@ export const CacheWarmerDashboard = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {!isFirecrawlConfigured && (
+                    <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2 text-warning">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="font-medium text-sm">Limitazione CORS</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Per sitemap esterne è necessario configurare Firecrawl per bypassare le limitazioni del browser.
+                      </p>
+                      <Button 
+                        onClick={() => setShowApiKeyDialog(true)} 
+                        variant="outline" 
+                        size="sm"
+                        className="w-full"
+                      >
+                        <Key className="h-4 w-4" />
+                        Configura Firecrawl
+                      </Button>
+                    </div>
+                  )}
+                  
                   <div>
                     <Label htmlFor="sitemap-url">URL Sitemap</Label>
                     <Input
@@ -575,6 +629,12 @@ export const CacheWarmerDashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <FirecrawlApiKeyDialog 
+          open={showApiKeyDialog}
+          onOpenChange={setShowApiKeyDialog}
+          onConfigured={handleFirecrawlConfigured}
+        />
       </div>
     </div>
   );

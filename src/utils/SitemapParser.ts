@@ -24,25 +24,44 @@ interface CrawlResult {
 }
 
 export class SitemapParser {
-  static async parseSitemap(sitemapUrl: string, auth?: { username: string; password: string }): Promise<SitemapUrl[]> {
+  static async parseSitemap(sitemapUrl: string, auth?: { username: string; password: string }, useFirecrawl = false): Promise<SitemapUrl[]> {
     console.log('Fetching sitemap:', sitemapUrl);
     
-    const headers: HeadersInit = {
-      'User-Agent': 'CacheWarmer/1.0 (+https://example.com)'
-    };
+    let xmlText: string;
 
-    if (auth) {
-      headers['Authorization'] = `Basic ${btoa(`${auth.username}:${auth.password}`)}`;
+    if (useFirecrawl) {
+      // Use Firecrawl to bypass CORS
+      const { FirecrawlService } = await import('./FirecrawlService');
+      const result = await FirecrawlService.fetchUrl(sitemapUrl);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch sitemap via Firecrawl');
+      }
+      xmlText = result.content || '';
+    } else {
+      // Direct fetch (will fail for cross-origin requests)
+      const headers: HeadersInit = {
+        'User-Agent': 'CacheWarmer/1.0 (+https://example.com)'
+      };
+
+      if (auth) {
+        headers['Authorization'] = `Basic ${btoa(`${auth.username}:${auth.password}`)}`;
+      }
+
+      try {
+        const response = await fetch(sitemapUrl, { headers });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        xmlText = await response.text();
+      } catch (error) {
+        // If direct fetch fails, suggest using Firecrawl
+        throw new Error(`CORS Error: Cannot fetch external sitemap directly from browser. Please configure Firecrawl API key to bypass this limitation.`);
+      }
     }
 
     try {
-      const response = await fetch(sitemapUrl, { headers });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const xmlText = await response.text();
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
 
@@ -63,7 +82,7 @@ export class SitemapParser {
           const sitemapLocation = sitemapElement.querySelector('loc')?.textContent;
           if (sitemapLocation) {
             console.log('Parsing sub-sitemap:', sitemapLocation);
-            const subUrls = await this.parseSitemap(sitemapLocation, auth);
+            const subUrls = await this.parseSitemap(sitemapLocation, auth, useFirecrawl);
             allUrls.push(...subUrls);
           }
         }
