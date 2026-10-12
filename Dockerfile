@@ -10,8 +10,7 @@ WORKDIR /app
 # Le dipendenze si copiano per prime: finché package.json e package-lock.json
 # non cambiano, Docker riusa questa layer e la build resta veloce
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund \
-    || (echo "npm ci fallito (lockfile fuori sincrono): passo a npm install" && npm install --no-audit --no-fund)
+RUN npm ci --no-audit --no-fund
 
 # Solo ora entra il codice sorgente
 COPY . .
