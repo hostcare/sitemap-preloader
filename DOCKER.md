@@ -108,7 +108,7 @@ di pre-caricamento invece sono richieste GET che il browser manda direttamente a
 sito bersaglio: se quel sito non dichiara il permesso CORS, la richiesta viene
 bloccata e la riga finisce negli errori con status `0`, anche se il sito è online.
 Nel file `nginx.conf` trovi un blocco `/crawl` commentato: se lo attivi, è nginx
-a fare da tramite e il problema sparisce. **FallO solo su una rete privata** —
+a fare da tramite e il problema sparisce. **Fallo solo su una rete privata** —
 un proxy aperto può essere usato da chiunque per raggiungere altri siti dal tuo
 server.
 
