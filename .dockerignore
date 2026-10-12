@@ -1,0 +1,25 @@
+# Non servono dentro l'immagine: npm ci li rigenera
+node_modules
+dist
+dist-ssr
+
+# Storia e metadata locali
+.git
+.gitignore
+.workspace
+.lovable
+
+# Log e sporcizia
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# File Docker: non devono entrare nel contesto di build
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Docs
+README.md
+DOCKER.md

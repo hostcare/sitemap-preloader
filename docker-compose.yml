@@ -1,0 +1,19 @@
+services:
+  cache-warmer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cache-warmer-pro:latest
+    container_name: cache-warmer
+    # A sinistra la porta sul tuo server, a destra la 80 interna del container.
+    # Cambia "8080" se la porta è già occupata.
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+    # Opzionale: log su file invece che nel journal di Docker
+    # logging:
+    #   driver: json-file
+    #   options:
+    #     max-size: "10m"
+    #     max-file: "3"
