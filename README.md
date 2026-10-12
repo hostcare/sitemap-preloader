@@ -71,3 +71,16 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Can I run this on my own server with Docker?
+
+Yes. A `Dockerfile`, an `nginx.conf`, a `.dockerignore` and a `docker-compose.yml`
+are included, so the app can be built and served outside Lovable:
+
+```sh
+docker compose up -d --build
+```
+
+Then open `http://<your-server>:8080`.
+Full walkthrough (downloading the code, port mapping, updates, limits to know
+about) is in [DOCKER.md](./DOCKER.md).
